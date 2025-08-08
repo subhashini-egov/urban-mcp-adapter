@@ -1,0 +1,110 @@
+{
+  "@type": "Schema",
+  "name": "ServiceRequest",
+  "version": "1.0.0",
+  "description": "Schema representing a public grievance request in the PGR system",
+  "parameters": {
+    "type": "object",
+    "required": [
+      "serviceCode",
+      "tenantId"
+    ],
+    "properties": {
+      "serviceRequestId": {
+        "type": "string",
+        "description": "Auto-generated grievance ID"
+      },
+      "serviceCode": {
+        "type": "string",
+        "description": "Type of grievance/service request"
+      },
+      "description": {
+        "type": "string",
+        "description": "Detailed description of the issue"
+      },
+      "tenantId": {
+        "type": "string",
+        "description": "Jurisdiction/Organization ID"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "OPEN",
+          "ASSIGNED",
+          "RESOLVED",
+          "REJECTED",
+          "CLOSED"
+        ],
+        "description": "Current status of the request"
+      },
+      "priority": {
+        "type": "string",
+        "enum": [
+          "HIGH",
+          "MEDIUM",
+          "LOW"
+        ],
+        "description": "Priority level of the request"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source of the request (e.g., MOBILE, WEB, IVR)"
+      },
+      "expectedTime": {
+        "type": "number",
+        "description": "Expected resolution time in epoch"
+      },
+      "createdBy": {
+        "type": "string"
+      },
+      "createdDate": {
+        "type": "number"
+      },
+      "lastModifiedBy": {
+        "type": "string"
+      },
+      "lastModifiedDate": {
+        "type": "number"
+      },
+      "address": {
+        "type": "object",
+        "properties": {
+          "doorNo": {
+            "type": "string"
+          },
+          "buildingName": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              }
+            }
+          },
+          "city": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      }
+    }
+  }
+}
