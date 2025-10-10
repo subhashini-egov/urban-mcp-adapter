@@ -77,10 +77,10 @@ spring.main.log-startup-info=false
 
 ### Authentication
 The application uses hardcoded credentials for demo purposes:
-- **Username**: `7878787878`
-- **Password**: `123456`
-- **Tenant**: `pg`
-- **User Type**: `citizen`
+- **Username**
+- **Password**
+- **Tenant**
+- **User Type**
 
 ## Usage
 
