@@ -1,7 +1,9 @@
-package org.egov.lg.mcp.ccrs.utils;// build.gradle or pom.xml: make sure you have spring-boot-starter-webflux
+package org.egov.lg.mcp.ccrs.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
+import org.egov.lg.mcp.ccrs.UrbanMCPConfiguration;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -12,8 +14,6 @@ import reactor.core.publisher.Mono;
 import java.net.URI;
 import java.util.concurrent.atomic.AtomicReference;
 
-
-
 @Service
 public class TokenService {
 
@@ -22,6 +22,8 @@ public class TokenService {
     @Getter
     JsonNode userInfo;
 
+    @Autowired
+    private UrbanMCPConfiguration configuration;
 
     public TokenService(WebClient.Builder builder) {
         this.webClient = builder.build();
@@ -38,7 +40,7 @@ public class TokenService {
     public void refreshCitizenToken() {
         // 1) Build URL with params
         URI uri = UriComponentsBuilder
-                .fromHttpUrl("https://unified-demo.digit.org/user/oauth/token")
+                .fromHttpUrl(configuration.getDemoBaseUrl() + "/user/oauth/token")
                 .build(false) // keep encoded if needed
                 .toUri();
 
@@ -48,12 +50,12 @@ public class TokenService {
                 .header("Authorization", "Basic ZWdvdi11c2VyLWNsaWVudDo=")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .accept(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromFormData("username", "7878787878")
-                        .with("password", "123456")
-                        .with("tenantId", "pg")
-                        .with("userType", "citizen")
-                        .with("scope", "read")
-                        .with("grant_type", "password"))
+                .body(BodyInserters.fromFormData("username", configuration.getAuthUsername())
+                        .with("password", configuration.getAuthPassword())
+                        .with("tenantId", configuration.getAuthTenantId())
+                        .with("userType", configuration.getAuthUserType())
+                        .with("scope", configuration.getAuthScope())
+                        .with("grant_type", configuration.getAuthGrantType()))
                 .retrieve()
                 .bodyToMono(JsonNode.class)
                 .onErrorResume(ex -> Mono.error(new RuntimeException("Auth call failed", ex)))

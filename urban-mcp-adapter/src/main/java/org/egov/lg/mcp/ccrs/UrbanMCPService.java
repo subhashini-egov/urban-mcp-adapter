@@ -38,24 +38,7 @@ public class UrbanMCPService {
     
     private static final Logger log = LoggerFactory.getLogger(UrbanMCPService.class);
     
-    // Constants
-    private static final String DEMO_BASE_URL = "https://unified-demo.digit.org";
-    private static final String LOCAL_BASE_URL = "http://localhost:8090";
-    private static final String PGR_SEARCH_ENDPOINT = "/pgr-services/v2/request/_search";
-    private static final String PGR_CREATE_ENDPOINT = "/pgr-services/v2/request/_create";
-    private static final String MDMS_SEARCH_ENDPOINT = "/egov-mdms-service/v1/_search";
-    private static final String LOCATION_SEARCH_ENDPOINT = "/egov-location/location/v11/boundarys/_search";
-    private static final String DATE_FORMAT = "yyyy-MM-dd";
-    private static final String TIMEZONE = "Asia/Kolkata";
-    private static final String SOURCE_WEB = "web";
-    private static final String WORKFLOW_ACTION_APPLY = "APPLY";
-    private static final String HIERARCHY_TYPE_ADMIN = "ADMIN";
-    private static final String BOUNDARY_TYPE_LOCALITY = "Locality";
-    private static final String MODULE_RAINMAKER_PGR = "RAINMAKER-PGR";
-    private static final String MASTER_SERVICE_DEFS = "ServiceDefs";
-    private static final String MODULE_TENANT = "tenant";
-    private static final String MASTER_TENANTS = "tenants";
-    private static final String MASTER_CITY_MODULE = "citymodule";
+    // Configuration will be injected via UrbanMCPConfiguration
     
     @Autowired
     private ObjectMapper mapper;
@@ -133,11 +116,11 @@ public class UrbanMCPService {
 
         // Date string: yyyy-MM-dd
         try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(mcpConfiguration.getDateFormat());
             LocalDate localDate = LocalDate.parse(trimmed, formatter);
-            return localDate.atStartOfDay(ZoneId.of(TIMEZONE)).toInstant().toEpochMilli();
+            return localDate.atStartOfDay(ZoneId.of(mcpConfiguration.getTimezone())).toInstant().toEpochMilli();
         } catch (Exception e) {
-            log.warn("Invalid date format (expected {}): {}", DATE_FORMAT, date);
+            log.warn("Invalid date format (expected {}): {}", mcpConfiguration.getDateFormat(), date);
             return null;
         }
     }
@@ -172,7 +155,7 @@ public class UrbanMCPService {
 
         try {
             URI uri = UriComponentsBuilder
-                    .fromUriString(LOCAL_BASE_URL + PGR_SEARCH_ENDPOINT)
+                    .fromUriString(mcpConfiguration.getLocalBaseUrl() + mcpConfiguration.getPgrSearchEndpoint())
                     .queryParam("tenantId", tenantId)
                     .queryParamIfPresent("fromDate", Optional.ofNullable(getEpochTime(fromDate)))
                     .queryParamIfPresent("toDate", Optional.ofNullable(getEpochTime(toDate)))
@@ -232,7 +215,7 @@ public class UrbanMCPService {
 
         try {
             URI uri = UriComponentsBuilder
-                    .fromUriString(LOCAL_BASE_URL + PGR_SEARCH_ENDPOINT)
+                    .fromUriString(mcpConfiguration.getLocalBaseUrl() + mcpConfiguration.getPgrSearchEndpoint())
                     .queryParam("tenantId", tenantId)
                     .queryParamIfPresent("serviceRequestId", Optional.ofNullable(complaintNumber))
                     .build(true)
@@ -291,7 +274,7 @@ public class UrbanMCPService {
 
         try {
             URI uri = UriComponentsBuilder
-                    .fromUriString(DEMO_BASE_URL + MDMS_SEARCH_ENDPOINT)
+                    .fromUriString(mcpConfiguration.getDemoBaseUrl() + mcpConfiguration.getMdmsSearchEndpoint())
                     .build(true)
                     .toUri();
 
@@ -318,8 +301,8 @@ public class UrbanMCPService {
 
             JsonNode root = mapper.readTree(response.getBody());
             return root.path("MdmsRes")
-                    .path(MODULE_RAINMAKER_PGR)
-                    .path(MASTER_SERVICE_DEFS);
+                    .path(mcpConfiguration.getModuleRainmakerPgr())
+                    .path(mcpConfiguration.getMasterServiceDefs());
         } catch (JsonProcessingException e) {
             log.error("Failed to parse JSON response from MDMS API for tenantId: {}", tenantId, e);
             throw new RuntimeException("Failed to parse complaint categories response", e);
@@ -348,7 +331,7 @@ public class UrbanMCPService {
     public List<CityTenant> fetchCityTenants() {
         try {
             URI uri = UriComponentsBuilder
-                    .fromUriString(DEMO_BASE_URL + MDMS_SEARCH_ENDPOINT)
+                    .fromUriString(mcpConfiguration.getDemoBaseUrl() + mcpConfiguration.getMdmsSearchEndpoint())
                     .build(true)
                     .toUri();
 
@@ -357,13 +340,13 @@ public class UrbanMCPService {
             requestInfo.put("userInfo", tokenService.getUserInfo());
 
             Map<String, Object> mdmsCriteria = new HashMap<>();
-            mdmsCriteria.put("tenantId", "pg");
+            mdmsCriteria.put("tenantId", mcpConfiguration.getAuthTenantId());
 
             Map<String, Object> mdTenant = new HashMap<>();
-            mdTenant.put("moduleName", MODULE_TENANT);
+            mdTenant.put("moduleName", mcpConfiguration.getModuleTenant());
             mdTenant.put("masterDetails", List.of(
-                    Map.of("name", MASTER_TENANTS),
-                    Map.of("name", MASTER_CITY_MODULE)
+                    Map.of("name", mcpConfiguration.getMasterTenants()),
+                    Map.of("name", mcpConfiguration.getMasterCityModule())
             ));
 
             mdmsCriteria.put("moduleDetails", List.of(mdTenant));
@@ -383,14 +366,14 @@ public class UrbanMCPService {
 
             List<CityTenant> result = new ArrayList<>();
             if (root != null) {
-                JsonNode tenants = root.path("MdmsRes").path(MODULE_TENANT).path(MASTER_TENANTS);
+                JsonNode tenants = root.path("MdmsRes").path(mcpConfiguration.getModuleTenant()).path(mcpConfiguration.getMasterTenants());
                 if (tenants.isArray()) {
                     for (JsonNode tenant : tenants) {
                         String code = tenant.path("code").asText(null);
                         if (code == null) continue;
                         
                         // Filter for city-level tenants (state.city format)
-                        if (!code.contains(".") || !code.startsWith("pg.")) continue;
+                        if (!code.contains(".") || !code.startsWith(mcpConfiguration.getAuthTenantId() + ".")) continue;
 
                         String display = tenant.path("city").path("name").asText(null);
                         if (display == null || display.isBlank()) {
@@ -433,9 +416,9 @@ public class UrbanMCPService {
 
         try {
             URI uri = UriComponentsBuilder
-                    .fromUriString(DEMO_BASE_URL + LOCATION_SEARCH_ENDPOINT)
-                    .queryParam("hierarchyTypeCode", HIERARCHY_TYPE_ADMIN)
-                    .queryParam("boundaryType", BOUNDARY_TYPE_LOCALITY)
+                    .fromUriString(mcpConfiguration.getDemoBaseUrl() + mcpConfiguration.getLocationSearchEndpoint())
+                    .queryParam("hierarchyTypeCode", mcpConfiguration.getHierarchyType())
+                    .queryParam("boundaryType", mcpConfiguration.getBoundaryType())
                     .queryParam("tenantId", tenantId)
                     .build(false)
                     .toUri();
@@ -533,18 +516,18 @@ public class UrbanMCPService {
             Map<String, Object> service = new HashMap<>();
             service.put("tenantId", tenantId);
             service.put("serviceCode", serviceCode);
-            service.put("source", SOURCE_WEB);
+            service.put("source", mcpConfiguration.getServiceSource());
             
             Map<String, Object> address = new HashMap<>();
             address.put("locality", Map.of("code", localityCode));
             service.put("address", address);
             
             payload.put("service", service);
-            payload.put("workflow", Map.of("action", WORKFLOW_ACTION_APPLY));
+            payload.put("workflow", Map.of("action", mcpConfiguration.getWorkflowAction()));
             payload.put("RequestInfo", Map.of("authToken", tokenService.getCitizenToken()));
 
             URI uri = UriComponentsBuilder
-                    .fromUriString(DEMO_BASE_URL + PGR_CREATE_ENDPOINT)
+                    .fromUriString(mcpConfiguration.getDemoBaseUrl() + mcpConfiguration.getPgrCreateEndpoint())
                     .build(true)
                     .toUri();
 
@@ -596,10 +579,10 @@ public class UrbanMCPService {
         }
 
         Map<String, Object> masterDetail = new HashMap<>();
-        masterDetail.put("name", MASTER_SERVICE_DEFS);
+        masterDetail.put("name", mcpConfiguration.getMasterServiceDefs());
 
         Map<String, Object> moduleDetail = new HashMap<>();
-        moduleDetail.put("moduleName", MODULE_RAINMAKER_PGR);
+        moduleDetail.put("moduleName", mcpConfiguration.getModuleRainmakerPgr());
         moduleDetail.put("masterDetails", Collections.singletonList(masterDetail));
 
         Map<String, Object> mdmsCriteria = new HashMap<>();
