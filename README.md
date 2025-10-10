@@ -41,7 +41,14 @@ The Urban MCP Adapter is a bridge between AI applications and Urban Local Govern
 - Java 17 or higher
 - Maven 3.6 or higher
 - Access to Urban Governance demo environment (`https://unified-demo.digit.org`)
-- Local PGR services running on `http://localhost:8090` (optional)
+- Local PGR services running on `http://localhost:8090` (optional). Use PGR hosted in other environments. If running locally to try out functionality, follow the PGR local setup section
+
+## Setting up PGR locally with synthetic data sets (WIP)
+To try the search functionality of PGR with synthetic datasets running on your local machine:
+1. Run the docker compose (TBD) file as follows.
+2. Run the PGR service locally (TBD) (This has some of the user and other validations commented out to enable us to run the search query successfully)
+3. Import synthetic data into the DB
+4. Run PGR service and configure the Urban MCP App to call the localhost APIs for search.
 
 ## Installation
 
@@ -201,7 +208,6 @@ For issues and questions:
 ## Related Projects
 
 - [Spring AI MCP Server](https://docs.spring.io/spring-ai/reference/api/mcp/mcp-server-boot-starter-docs.html)
-- [Urban Governance Platform](https://unified-demo.digit.org)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
 
 ## Changelog
